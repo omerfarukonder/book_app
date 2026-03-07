@@ -1,0 +1,163 @@
+import { useState, useMemo } from 'react';
+import {
+  StyleSheet,
+  FlatList,
+  Pressable,
+} from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import { useLocalSearchParams, useRouter } from 'expo-router';
+import FontAwesome from '@expo/vector-icons/FontAwesome';
+
+import { Text, View } from '@/components/Themed';
+import { BookCard } from '@/components/BookCard';
+import { useColorScheme } from '@/components/useColorScheme';
+import Colors from '@/constants/Colors';
+import { getMockUserById } from '@/lib/mockData';
+import { useDataStore } from '@/stores/dataStore';
+import { useAuthStore } from '@/stores/authStore';
+
+export default function UserProfileScreen() {
+  const { id } = useLocalSearchParams<{ id: string }>();
+  const colorScheme = useColorScheme() ?? 'light';
+  const colors = Colors[colorScheme];
+  const router = useRouter();
+  const currentUser = useAuthStore((s) => s.user);
+
+  const user = useMemo(() => getMockUserById(id ?? ''), [id]);
+  const getUserLogs = useDataStore((s) => s.getUserLogs);
+  const getUserStats = useDataStore((s) => s.getUserStats);
+
+  const logs = useMemo(() => user ? getUserLogs(user.id) : [], [user]);
+  const stats = useMemo(() => user ? getUserStats(user.id) : { books: 0, followers: 0, following: 0 }, [user]);
+  const [isFollowing, setIsFollowing] = useState(false);
+
+  if (!user) {
+    return (
+      <View style={styles.center}>
+        <Text style={{ color: colors.text }}>User not found</Text>
+        <Pressable onPress={() => router.back()} style={{ marginTop: 16 }}>
+          <Text style={{ color: colors.accent }}>Go back</Text>
+        </Pressable>
+      </View>
+    );
+  }
+
+  const isOwnProfile = currentUser?.id === id;
+
+  return (
+    <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
+      <Pressable style={styles.backButton} onPress={() => router.back()}>
+        <FontAwesome name="chevron-left" size={18} color={colors.text} />
+      </Pressable>
+
+      <FlatList
+        data={logs}
+        keyExtractor={(item) => item.id}
+        ListHeaderComponent={
+          <View style={[styles.profileHeader, { backgroundColor: 'transparent' }]}>
+            <View style={[styles.avatarCircle, { backgroundColor: colors.accent }]}>
+              <Text style={styles.avatarText}>
+                {user.display_name.charAt(0).toUpperCase()}
+              </Text>
+            </View>
+            <Text style={[styles.displayName, { color: colors.text }]}>
+              {user.display_name}
+            </Text>
+            <Text style={[styles.username, { color: colors.textSecondary }]}>
+              @{user.username}
+            </Text>
+            {user.bio && (
+              <Text style={[styles.bio, { color: colors.textSecondary }]}>
+                {user.bio}
+              </Text>
+            )}
+
+            <View style={[styles.statsRow, { backgroundColor: 'transparent' }]}>
+              <View style={[styles.statItem, { backgroundColor: 'transparent' }]}>
+                <Text style={[styles.statNumber, { color: colors.text }]}>{stats.books}</Text>
+                <Text style={[styles.statLabel, { color: colors.textSecondary }]}>Books</Text>
+              </View>
+              <View style={[styles.statItem, { backgroundColor: 'transparent' }]}>
+                <Text style={[styles.statNumber, { color: colors.text }]}>{stats.followers}</Text>
+                <Text style={[styles.statLabel, { color: colors.textSecondary }]}>Followers</Text>
+              </View>
+              <View style={[styles.statItem, { backgroundColor: 'transparent' }]}>
+                <Text style={[styles.statNumber, { color: colors.text }]}>{stats.following}</Text>
+                <Text style={[styles.statLabel, { color: colors.textSecondary }]}>Following</Text>
+              </View>
+            </View>
+
+            {!isOwnProfile && (
+              <Pressable
+                style={[
+                  styles.followButton,
+                  { backgroundColor: isFollowing ? colors.surfaceSecondary : colors.accent },
+                ]}
+                onPress={() => setIsFollowing(!isFollowing)}>
+                <Text style={{ color: isFollowing ? colors.text : '#fff', fontWeight: '600' }}>
+                  {isFollowing ? 'Following' : 'Follow'}
+                </Text>
+              </Pressable>
+            )}
+          </View>
+        }
+        renderItem={({ item }) =>
+          item.book ? (
+            <View style={{ paddingHorizontal: 16 }}>
+              <BookCard book={item.book} rating={item.rating} />
+            </View>
+          ) : null
+        }
+        contentContainerStyle={styles.list}
+      />
+    </SafeAreaView>
+  );
+}
+
+const styles = StyleSheet.create({
+  container: { flex: 1 },
+  center: { flex: 1, alignItems: 'center', justifyContent: 'center' },
+  backButton: {
+    position: 'absolute',
+    top: 60,
+    left: 16,
+    zIndex: 10,
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  profileHeader: {
+    alignItems: 'center',
+    paddingTop: 60,
+    paddingHorizontal: 16,
+    paddingBottom: 20,
+  },
+  avatarCircle: {
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 12,
+  },
+  avatarText: {
+    fontSize: 32,
+    fontWeight: '700',
+    color: '#fff',
+  },
+  displayName: { fontSize: 22, fontWeight: '700', marginBottom: 2 },
+  username: { fontSize: 15, marginBottom: 8 },
+  bio: { fontSize: 14, textAlign: 'center', lineHeight: 20, marginBottom: 16 },
+  statsRow: { flexDirection: 'row', gap: 32, marginBottom: 16 },
+  statItem: { alignItems: 'center' },
+  statNumber: { fontSize: 18, fontWeight: '700' },
+  statLabel: { fontSize: 13 },
+  followButton: {
+    paddingHorizontal: 28,
+    paddingVertical: 10,
+    borderRadius: 20,
+  },
+  list: { paddingBottom: 20 },
+});
