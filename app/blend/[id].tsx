@@ -83,7 +83,7 @@ function SourceBadge({
 }) {
   const isShared = source === 'shared';
   const label = isShared
-    ? '✦ Both of you'
+    ? '✦ New for both of you'
     : source === 'user1'
     ? `↑ For @${user1Username ?? 'user1'}`
     : `↑ For @${user2Username ?? 'user2'}`;

@@ -3,6 +3,7 @@ import { useRouter } from 'expo-router';
 
 import { Text, View } from '@/components/Themed';
 import { RatingStars } from '@/components/RatingStars';
+import { UserAvatar } from '@/components/UserAvatar';
 import { useColorScheme } from '@/components/useColorScheme';
 import Colors from '@/constants/Colors';
 import { Log } from '@/lib/types';
@@ -30,14 +31,9 @@ export function ReviewCard({ log, showUser = true }: ReviewCardProps) {
         <Pressable
           style={styles.userRow}
           onPress={() => router.push(`/user/${log.user!.id}`)}>
-          <Image
-            source={
-              log.user.avatar_url
-                ? { uri: log.user.avatar_url }
-                : require('@/assets/images/icon.png')
-            }
-            style={styles.avatar}
-          />
+          <View style={[styles.avatar, { backgroundColor: 'transparent' }]}>
+            <UserAvatar displayName={log.user.display_name} size={28} />
+          </View>
           <Text style={[styles.username, { color: colors.text }]}>
             {log.user.display_name}
           </Text>
@@ -109,10 +105,6 @@ const styles = StyleSheet.create({
     marginBottom: 12,
   },
   avatar: {
-    width: 28,
-    height: 28,
-    borderRadius: 14,
-    backgroundColor: '#ddd',
     marginRight: 8,
   },
   username: {

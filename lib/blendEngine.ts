@@ -1,6 +1,7 @@
 import { Log, Book, BlendBook } from './types';
 import { searchBooks } from './googleBooks';
 import { supabase } from './supabase';
+import { MOCK_BOOKS } from './mockData';
 
 export interface BlendResult {
   books: BlendBook[];
@@ -165,11 +166,18 @@ export async function runBlend(
   type Source = 'user1' | 'user2' | 'shared';
   type QuerySpec = { query: string; source: Source };
 
-  // Build query list: try 1 shared, 2 user1, 2 user2
+  // Shared authors
+  const sharedAuthorsArr = u1TopAuthors.filter((a) => u2AuthorSet.has(a));
+
+  // Build query list: try 3 shared, 1 user1, 1 user2
   const querySpecs: QuerySpec[] = [
-    ...sharedGenresArr.slice(0, 2).map((g) => ({ query: `subject:${g}`, source: 'shared' as Source })),
+    // Shared taste — genres AND authors both like
+    ...sharedGenresArr.slice(0, 3).map((g) => ({ query: `subject:${g}`, source: 'shared' as Source })),
+    ...sharedAuthorsArr.slice(0, 2).map((a) => ({ query: `inauthor:${a}`, source: 'shared' as Source })),
+    // User1-unique taste
     ...u1OnlyGenres.slice(0, 2).map((g) => ({ query: `subject:${g}`, source: 'user1' as Source })),
     ...u1OnlyAuthors.slice(0, 1).map((a) => ({ query: `inauthor:${a}`, source: 'user1' as Source })),
+    // User2-unique taste
     ...u2OnlyGenres.slice(0, 2).map((g) => ({ query: `subject:${g}`, source: 'user2' as Source })),
     ...u2OnlyAuthors.slice(0, 1).map((a) => ({ query: `inauthor:${a}`, source: 'user2' as Source })),
   ];
@@ -187,8 +195,8 @@ export async function runBlend(
     querySpecs.push({ query: `subject:${u2TopGenres[0]}`, source: 'user2' });
   }
 
-  // Target counts per source: 1 shared + 2 user1 + 2 user2
-  const targets: Record<Source, number> = { shared: 1, user1: 2, user2: 2 };
+  // Target counts per source: 3 shared + 1 user1 + 1 user2 = 5
+  const targets: Record<Source, number> = { shared: 3, user1: 1, user2: 1 };
   const counts:  Record<Source, number> = { shared: 0, user1: 0, user2: 0 };
   const blendBooks: BlendBook[] = [];
   const seenIds = new Set<string>();
@@ -212,7 +220,7 @@ export async function runBlend(
     }
   }
 
-  // Backfill remaining slots from any genre if API had gaps
+  // Backfill remaining slots from any genre via API
   if (blendBooks.length < 5) {
     const backfillSpecs: QuerySpec[] = [
       ...u1TopGenres.slice(0, 3).map((g) => ({ query: `subject:${g}`, source: 'user1' as Source })),
@@ -230,6 +238,30 @@ export async function runBlend(
           }
         }
       } catch { /* continue */ }
+    }
+  }
+
+  // Last-resort: fill from local catalog (MOCK_BOOKS) when API is unavailable
+  if (blendBooks.length < 5) {
+    // Score each local book by how many genres match each user's taste
+    const u1GenreSetFull = new Set(u1TopGenres);
+    const u2GenreSetFull = new Set(u2TopGenres);
+
+    const scored = MOCK_BOOKS
+      .filter((b) => !allReadIds.has(b.google_books_id) && !seenIds.has(b.google_books_id))
+      .map((b) => {
+        const u1Match = b.genres.filter((g) => u1GenreSetFull.has(g)).length;
+        const u2Match = b.genres.filter((g) => u2GenreSetFull.has(g)).length;
+        return { book: b, u1Match, u2Match, total: u1Match + u2Match };
+      })
+      .sort((a, b) => b.total - a.total);
+
+    for (const { book, u1Match, u2Match } of scored) {
+      if (blendBooks.length >= 5) break;
+      const source: Source =
+        u1Match > 0 && u2Match > 0 ? 'shared' : u1Match > 0 ? 'user1' : 'user2';
+      blendBooks.push({ book, source });
+      seenIds.add(book.google_books_id);
     }
   }
 

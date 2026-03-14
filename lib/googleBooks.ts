@@ -44,11 +44,17 @@ export function volumeToBook(volume: GoogleBooksVolume): Book {
   };
 }
 
-export async function searchBooks(query: string, maxResults = 20): Promise<Book[]> {
+function detectLangRestrict(text: string): string | undefined {
+  if (/[ğüşıöçĞÜŞİÖÇ]/.test(text)) return 'tr';
+  return undefined;
+}
+
+async function fetchBooks(query: string, maxResults: number, langRestrict?: string): Promise<Book[]> {
   const params = new URLSearchParams({
     q: query,
     maxResults: String(maxResults),
     printType: 'books',
+    ...(langRestrict ? { langRestrict } : {}),
     ...(API_KEY ? { key: API_KEY } : {}),
   });
 
@@ -57,8 +63,20 @@ export async function searchBooks(query: string, maxResults = 20): Promise<Book[
 
   const data: GoogleBooksSearchResult = await response.json();
   if (!data.items) return [];
-
   return data.items.map(volumeToBook);
+}
+
+export async function searchBooks(query: string, maxResults = 20): Promise<Book[]> {
+  const langRestrict = detectLangRestrict(query);
+
+  if (langRestrict) {
+    // Try with language restriction first; if empty, retry without
+    const restricted = await fetchBooks(query, maxResults, langRestrict);
+    if (restricted.length > 0) return restricted;
+    return fetchBooks(query, maxResults);
+  }
+
+  return fetchBooks(query, maxResults);
 }
 
 export async function getBookById(googleBooksId: string): Promise<Book | null> {
