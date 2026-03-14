@@ -104,6 +104,14 @@ function RootLayoutNav() {
           options={{ headerShown: false, presentation: 'card' }}
         />
         <Stack.Screen
+          name="followers/[id]"
+          options={{ headerShown: false, presentation: 'card' }}
+        />
+        <Stack.Screen
+          name="blend/[id]"
+          options={{ headerShown: false, presentation: 'card' }}
+        />
+        <Stack.Screen
           name="log-modal"
           options={{ presentation: 'modal', headerShown: false }}
         />

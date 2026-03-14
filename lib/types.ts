@@ -119,6 +119,24 @@ export interface GoogleBooksSearchResult {
   items?: GoogleBooksVolume[];
 }
 
+export interface BlendBook {
+  book: Book;
+  /** whose taste drove this recommendation */
+  source: 'user1' | 'user2' | 'shared';
+}
+
+export interface Blend {
+  id: string;
+  user1_id: string;
+  user2_id: string;
+  user1?: UserProfile;
+  user2?: UserProfile;
+  books: BlendBook[];
+  bond_book: Book | null;
+  compatibility_score: number; // 0–100
+  created_at: string;
+}
+
 // Activity feed item
 export interface ActivityItem {
   type: 'log' | 'like' | 'list' | 'follow';

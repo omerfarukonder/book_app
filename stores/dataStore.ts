@@ -3,6 +3,8 @@ import { persist, createJSONStorage } from 'zustand/middleware';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Log, BookList, ListItem, Book } from '@/lib/types';
 import { MOCK_LOGS, MOCK_LISTS, MOCK_LIST_ITEMS } from '@/lib/mockData';
+
+const SEED_VERSION = 2; // bump this whenever mock data changes
 import { supabase } from '@/lib/supabase';
 
 function generateId(): string {
@@ -83,6 +85,7 @@ interface DataState {
   lists: BookList[];
   listItems: ListItem[];
   seeded: boolean;
+  seedVersion: number;
   isSyncing: boolean;
 
   // Seed
@@ -119,16 +122,21 @@ export const useDataStore = create<DataState>()(
       lists: [],
       listItems: [],
       seeded: false,
+      seedVersion: 0,
       isSyncing: false,
 
       seedIfNeeded: () => {
-        if (get().seeded) return;
-        set({
-          logs: MOCK_LOGS,
+        if (get().seedVersion >= SEED_VERSION) return;
+        // Merge: add any MOCK_LOGS entries not already in state (by id)
+        const existingIds = new Set(get().logs.map((l) => l.id));
+        const newLogs = MOCK_LOGS.filter((l) => !existingIds.has(l.id));
+        set((state) => ({
+          logs: [...state.logs, ...newLogs],
           lists: MOCK_LISTS,
           listItems: MOCK_LIST_ITEMS,
           seeded: true,
-        });
+          seedVersion: SEED_VERSION,
+        }));
       },
 
       // ─── Supabase pull ─────────────────────────────────────────────────
@@ -335,6 +343,7 @@ export const useDataStore = create<DataState>()(
         lists: state.lists,
         listItems: state.listItems,
         seeded: state.seeded,
+        seedVersion: state.seedVersion,
       }),
     }
   )

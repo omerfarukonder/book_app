@@ -68,14 +68,18 @@ export default function ProfileScreen() {
                   <Text style={[styles.statNumber, { color: colors.text }]}>{stats.books}</Text>
                   <Text style={[styles.statLabel, { color: colors.textSecondary }]}>Books</Text>
                 </View>
-                <View style={[styles.statItem, { backgroundColor: 'transparent' }]}>
+                <Pressable
+                  style={[styles.statItem, { backgroundColor: 'transparent' }]}
+                  onPress={() => router.push(`/followers/${user.id}?tab=followers`)}>
                   <Text style={[styles.statNumber, { color: colors.text }]}>{stats.followers}</Text>
                   <Text style={[styles.statLabel, { color: colors.textSecondary }]}>Followers</Text>
-                </View>
-                <View style={[styles.statItem, { backgroundColor: 'transparent' }]}>
+                </Pressable>
+                <Pressable
+                  style={[styles.statItem, { backgroundColor: 'transparent' }]}
+                  onPress={() => router.push(`/followers/${user.id}?tab=following`)}>
                   <Text style={[styles.statNumber, { color: colors.text }]}>{stats.following}</Text>
                   <Text style={[styles.statLabel, { color: colors.textSecondary }]}>Following</Text>
-                </View>
+                </Pressable>
               </View>
 
               <Pressable
