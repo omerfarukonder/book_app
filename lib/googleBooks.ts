@@ -31,7 +31,7 @@ function extractIsbn(volume: GoogleBooksVolume): string | null {
 export function volumeToBook(volume: GoogleBooksVolume): Book {
   const info = volume.volumeInfo;
   return {
-    id: '', // assigned by DB
+    id: volume.id,
     google_books_id: volume.id,
     title: info.title,
     authors: info.authors ?? [],

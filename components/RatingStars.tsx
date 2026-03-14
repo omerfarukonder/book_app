@@ -31,7 +31,8 @@ export function RatingStars({ rating, size = 18, interactive = false, onRate }: 
 
         if (interactive) {
           return (
-            <View key={i} style={{ flexDirection: 'row' }}>
+            <View key={i} style={{ flexDirection: 'row', marginRight: 4 }}>
+              {/* Left half — tapping gives half star */}
               <Pressable onPress={() => handlePress(i, true)} hitSlop={4}>
                 <View style={{ width: size / 2, overflow: 'hidden' }}>
                   <FontAwesome
@@ -41,8 +42,9 @@ export function RatingStars({ rating, size = 18, interactive = false, onRate }: 
                   />
                 </View>
               </Pressable>
+              {/* Right half — tapping gives full star */}
               <Pressable onPress={() => handlePress(i, false)} hitSlop={4}>
-                <View style={{ width: size / 2, overflow: 'hidden', marginLeft: -(size / 2) }}>
+                <View style={{ width: size / 2, overflow: 'hidden' }}>
                   <View style={{ marginLeft: -(size / 2) }}>
                     <FontAwesome
                       name={filled ? 'star' : 'star-o'}

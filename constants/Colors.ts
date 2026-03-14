@@ -1,37 +1,42 @@
-// BookShelf color palette - warm, literary aesthetic
-const tintColorLight = '#1a1a2e';
-const tintColorDark = '#e8d5b7';
+// BookShelf color palette — warm terracotta / literary aesthetic
+// Dark maroon:   #5E1010
+// Rust red:      #A82E1A
+// Terracotta:    #CC5030
+// Cream:         #EDE0CC
+
+const tintColorLight = '#5E1010';
+const tintColorDark = '#EDE0CC';
 
 export default {
   light: {
-    text: '#1a1a2e',
-    textSecondary: '#6b7280',
-    background: '#faf8f5',
-    surface: '#ffffff',
-    surfaceSecondary: '#f3f0eb',
+    text: '#2C0A0A',
+    textSecondary: '#7A4A3A',
+    background: '#EDE0CC',
+    surface: '#F7F0E6',
+    surfaceSecondary: '#E8D5BC',
     tint: tintColorLight,
-    accent: '#c9a96e',
-    accentLight: '#e8d5b7',
-    border: '#e5e2dd',
-    tabIconDefault: '#9ca3af',
+    accent: '#A82E1A',
+    accentLight: '#E8C4B0',
+    border: '#D9C4A8',
+    tabIconDefault: '#A07060',
     tabIconSelected: tintColorLight,
-    star: '#f59e0b',
+    star: '#CC5030',
     error: '#ef4444',
     success: '#22c55e',
   },
   dark: {
-    text: '#f5f0e8',
-    textSecondary: '#9ca3af',
-    background: '#0f0f1a',
-    surface: '#1a1a2e',
-    surfaceSecondary: '#242440',
+    text: '#F5EAD8',
+    textSecondary: '#C09070',
+    background: '#1A0505',
+    surface: '#2E0D0D',
+    surfaceSecondary: '#3D1515',
     tint: tintColorDark,
-    accent: '#c9a96e',
-    accentLight: '#3d3522',
-    border: '#2d2d4a',
-    tabIconDefault: '#6b7280',
+    accent: '#CC5030',
+    accentLight: '#5E1010',
+    border: '#4A1A1A',
+    tabIconDefault: '#7A4A3A',
     tabIconSelected: tintColorDark,
-    star: '#f59e0b',
+    star: '#CC5030',
     error: '#ef4444',
     success: '#22c55e',
   },

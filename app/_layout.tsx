@@ -39,20 +39,33 @@ export default function RootLayout() {
 
 function RootLayoutNav() {
   const colorScheme = useColorScheme();
+  const user = useAuthStore((s) => s.user);
   const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
   const hydrated = useAuthStore((s) => s.hydrated);
   const seedIfNeeded = useDataStore((s) => s.seedIfNeeded);
+  const syncFromSupabase = useDataStore((s) => s.syncFromSupabase);
   const router = useRouter();
   const segments = useSegments();
   const hasRedirected = useRef(false);
+  const lastSyncedUserId = useRef<string | null>(null);
 
   // Seed mock data on first launch
   useEffect(() => {
     seedIfNeeded();
   }, []);
 
+  // Pull user data from Supabase on login (runs once per user session)
+  useEffect(() => {
+    if (!user || !isAuthenticated) {
+      lastSyncedUserId.current = null;
+      return;
+    }
+    if (lastSyncedUserId.current === user.id) return;
+    lastSyncedUserId.current = user.id;
+    syncFromSupabase(user.id);
+  }, [user?.id, isAuthenticated]);
+
   // Auth guard: redirect based on auth state
-  // Only redirect once per auth state change to avoid infinite loops
   useEffect(() => {
     if (!hydrated) return;
 

@@ -8,6 +8,7 @@ import {
   Switch,
   KeyboardAvoidingView,
   Platform,
+  ActivityIndicator,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useLocalSearchParams, useRouter } from 'expo-router';
@@ -19,6 +20,7 @@ import { useColorScheme } from '@/components/useColorScheme';
 import Colors from '@/constants/Colors';
 import { Book, ReadingStatus } from '@/lib/types';
 import { getMockBookByGoogleId, MOCK_BOOKS } from '@/lib/mockData';
+import { searchBooks } from '@/lib/googleBooks';
 import { useDataStore } from '@/stores/dataStore';
 import { useAuthStore } from '@/stores/authStore';
 
@@ -40,6 +42,7 @@ export default function LogModal() {
   const [book, setBook] = useState<Book | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState<Book[]>([]);
+  const [searching, setSearching] = useState(false);
 
   const [status, setStatus] = useState<ReadingStatus>('finished');
   const [rating, setRating] = useState(0);
@@ -53,16 +56,25 @@ export default function LogModal() {
     }
   }, [bookId]);
 
-  const handleSearch = () => {
+  const handleSearch = async () => {
     if (!searchQuery.trim()) return;
-    const q = searchQuery.toLowerCase();
-    setSearchResults(
-      MOCK_BOOKS.filter(
-        (b) =>
-          b.title.toLowerCase().includes(q) ||
-          b.authors.some((a) => a.toLowerCase().includes(q))
-      )
-    );
+    setSearching(true);
+    try {
+      const books = await searchBooks(searchQuery.trim());
+      setSearchResults(books);
+    } catch {
+      // Fallback to mock books if API fails
+      const q = searchQuery.toLowerCase();
+      setSearchResults(
+        MOCK_BOOKS.filter(
+          (b) =>
+            b.title.toLowerCase().includes(q) ||
+            b.authors.some((a) => a.toLowerCase().includes(q))
+        )
+      );
+    } finally {
+      setSearching(false);
+    }
   };
 
   const selectBook = (selected: Book) => {
@@ -145,6 +157,12 @@ export default function LogModal() {
                       </Text>
                     </Pressable>
                   ))}
+                </View>
+              )}
+
+              {searching && (
+                <View style={[styles.loadingRow, { backgroundColor: 'transparent' }]}>
+                  <ActivityIndicator size="small" color={colors.accent} />
                 </View>
               )}
 
@@ -264,6 +282,7 @@ const styles = StyleSheet.create({
     gap: 10,
   },
   searchInput: { flex: 1, fontSize: 16, height: 44 },
+  loadingRow: { paddingVertical: 20, alignItems: 'center' },
   searchResult: {
     paddingVertical: 12,
     borderBottomWidth: 1,

@@ -10,7 +10,7 @@ interface StoredAccount {
   profile: UserProfile;
 }
 
-// Built-in admin account
+// Built-in admin account (hardcoded, never synced to Supabase)
 const ADMIN_ACCOUNT: StoredAccount = {
   username: 'admin',
   password: 'admin',
@@ -26,10 +26,21 @@ const ADMIN_ACCOUNT: StoredAccount = {
 
 const ACCOUNTS_KEY = 'bookshelf_accounts';
 
+// Simple UUID v4 fallback for offline signup
+function generateUUID(): string {
+  if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
+    return crypto.randomUUID();
+  }
+  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, (c) => {
+    const r = (Math.random() * 16) | 0;
+    const v = c === 'x' ? r : (r & 0x3) | 0x8;
+    return v.toString(16);
+  });
+}
+
 async function getAccounts(): Promise<StoredAccount[]> {
   const raw = await AsyncStorage.getItem(ACCOUNTS_KEY);
   const saved: StoredAccount[] = raw ? JSON.parse(raw) : [];
-  // Always include admin if not already there
   if (!saved.find((a) => a.username === 'admin')) {
     saved.unshift(ADMIN_ACCOUNT);
   }
@@ -38,8 +49,10 @@ async function getAccounts(): Promise<StoredAccount[]> {
 
 async function saveAccount(account: StoredAccount): Promise<void> {
   const accounts = await getAccounts();
-  accounts.push(account);
-  await AsyncStorage.setItem(ACCOUNTS_KEY, JSON.stringify(accounts));
+  // Remove existing entry for this username before saving
+  const filtered = accounts.filter((a) => a.username !== account.username);
+  filtered.push(account);
+  await AsyncStorage.setItem(ACCOUNTS_KEY, JSON.stringify(filtered));
 }
 
 interface AuthState {
@@ -60,33 +73,47 @@ export const useAuthStore = create<AuthState>()(
       hydrated: false,
 
       signIn: async (username, password) => {
-        // 1. Check local accounts first (admin always works offline)
+        // Admin always works locally
+        if (username === 'admin' && password === 'admin') {
+          set({ user: ADMIN_ACCOUNT.profile, isAuthenticated: true });
+          return;
+        }
+
+        // Check local cache first (fast, works offline)
         const accounts = await getAccounts();
         const localAccount = accounts.find(
           (a) => a.username === username && a.password === password
         );
+
         if (localAccount) {
           set({ user: localAccount.profile, isAuthenticated: true });
-          // Also try Supabase sign-in in background (non-blocking)
+
+          // In background: sync Supabase session and reconcile UUID
           try {
-            await supabase.auth.signInWithPassword({
+            const { data } = await supabase.auth.signInWithPassword({
               email: `${username}@bookshelf.app`,
               password,
             });
+            if (data.user && data.user.id !== localAccount.profile.id) {
+              // Supabase UUID differs from local — update local to match
+              const updatedProfile = { ...localAccount.profile, id: data.user.id };
+              await saveAccount({ username, password, profile: updatedProfile });
+              set({ user: updatedProfile, isAuthenticated: true });
+            }
           } catch {
-            // Supabase offline — fine, local auth succeeded
+            // Supabase offline — local session is fine
           }
           return;
         }
 
-        // 2. Try Supabase auth if no local match
+        // No local account — try Supabase directly
         try {
           const { data, error } = await supabase.auth.signInWithPassword({
             email: `${username}@bookshelf.app`,
             password,
           });
           if (!error && data.user) {
-            // Fetch user profile from Supabase
+            // Fetch profile from public.users
             const { data: profileData } = await supabase
               .from('users')
               .select('*')
@@ -111,7 +138,6 @@ export const useAuthStore = create<AuthState>()(
                   created_at: new Date().toISOString(),
                 };
 
-            // Cache locally for offline access
             await saveAccount({ username, password, profile });
             set({ user: profile, isAuthenticated: true });
             return;
@@ -124,13 +150,48 @@ export const useAuthStore = create<AuthState>()(
       },
 
       signUp: async (username, password, displayName) => {
+        // Check username availability locally
         const accounts = await getAccounts();
         if (accounts.find((a) => a.username === username)) {
           throw new Error('Username already taken');
         }
 
+        let userId: string;
+
+        // Try Supabase FIRST so we get the real UUID from auth
+        try {
+          const { data, error } = await supabase.auth.signUp({
+            email: `${username}@bookshelf.app`,
+            password,
+            options: { data: { username, display_name: displayName } },
+          });
+
+          if (!error && data.user) {
+            userId = data.user.id; // Real Supabase UUID
+
+            // Insert into public.users table
+            await supabase.from('users').upsert({
+              id: userId,
+              username,
+              display_name: displayName,
+              avatar_url: null,
+              bio: null,
+            });
+          } else {
+            // Supabase returned an error (e.g. email already exists)
+            const msg = error?.message ?? 'Sign up failed';
+            if (msg.toLowerCase().includes('already')) {
+              throw new Error('Username already taken');
+            }
+            userId = generateUUID(); // offline fallback
+          }
+        } catch (err: any) {
+          if (err.message && !err.message.includes('fetch')) throw err;
+          userId = generateUUID(); // network error fallback
+        }
+
         const profile: UserProfile = {
-          id: `u_${Date.now()}`,
+          id: userId,
           username,
           display_name: displayName,
           avatar_url: null,
@@ -138,34 +199,12 @@ export const useAuthStore = create<AuthState>()(
           created_at: new Date().toISOString(),
         };
 
-        // Save locally first (always works)
         await saveAccount({ username, password, profile });
         set({ user: profile, isAuthenticated: true });
-
-        // Try Supabase signup in background (non-blocking)
-        try {
-          const { data, error } = await supabase.auth.signUp({
-            email: `${username}@bookshelf.app`,
-            password,
-          });
-          if (!error && data.user) {
-            // Insert user profile row
-            await supabase.from('users').upsert({
-              id: data.user.id,
-              username,
-              display_name: displayName,
-              avatar_url: null,
-              bio: null,
-            });
-          }
-        } catch {
-          // Supabase offline — local account still works
-        }
       },
 
       signOut: () => {
         set({ user: null, isAuthenticated: false });
-        // Sign out of Supabase too (non-blocking)
         supabase.auth.signOut().catch(() => {});
       },
 

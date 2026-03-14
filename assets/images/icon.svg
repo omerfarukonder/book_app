@@ -1,0 +1,39 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" width="1024" height="1024">
+  <defs>
+    <linearGradient id="bgGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#5B7EF5"/>
+      <stop offset="100%" stop-color="#2DC5B0"/>
+    </linearGradient>
+    <linearGradient id="heartGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#3DD6C8"/>
+      <stop offset="100%" stop-color="#5AAEE8"/>
+    </linearGradient>
+    <linearGradient id="leftSpineGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#162D6A"/>
+      <stop offset="100%" stop-color="#1E3A8A"/>
+    </linearGradient>
+  </defs>
+
+  <!-- Background -->
+  <rect width="1024" height="1024" rx="210" fill="url(#bgGrad)"/>
+
+  <!-- Right book (gold) — behind -->
+  <rect x="498" y="278" width="278" height="435" rx="22" fill="#C89010" stroke="white" stroke-width="13"/>
+  <rect x="498" y="278" width="40" height="435" rx="12" fill="#A67808"/>
+  <line x1="538" y1="278" x2="538" y2="713" stroke="white" stroke-width="4" opacity="0.35"/>
+
+  <!-- Left book (navy) — in front -->
+  <rect x="222" y="255" width="318" height="464" rx="26" fill="#1E3A8A" stroke="white" stroke-width="13"/>
+  <rect x="222" y="255" width="44" height="464" rx="14" fill="url(#leftSpineGrad)"/>
+  <line x1="266" y1="255" x2="266" y2="719" stroke="white" stroke-width="4" opacity="0.3"/>
+
+  <!-- Heart -->
+  <path d="M 512 672
+           C 300 552, 242 440, 242 364
+           C 242 274, 316 220, 396 220
+           C 442 220, 482 242, 512 278
+           C 542 242, 582 220, 628 220
+           C 708 220, 782 274, 782 364
+           C 782 440, 724 552, 512 672 Z"
+        fill="url(#heartGrad)" stroke="white" stroke-width="13"/>
+</svg>
