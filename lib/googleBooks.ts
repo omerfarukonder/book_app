@@ -58,10 +58,30 @@ async function fetchBooks(query: string, maxResults: number, langRestrict?: stri
     ...(API_KEY ? { key: API_KEY } : {}),
   });
 
-  const response = await fetch(`${BASE_URL}?${params}`);
-  if (!response.ok) throw new Error(`Google Books API error: ${response.status}`);
+  const url = `${BASE_URL}?${params}`;
+  console.log('[GoogleBooks] fetching:', url.replace(API_KEY, 'KEY_HIDDEN'));
+
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 8000);
+
+  let response: Response;
+  try {
+    response = await fetch(url, { signal: controller.signal });
+  } catch (err) {
+    console.error('[GoogleBooks] fetch failed (network/timeout):', err);
+    throw err;
+  } finally {
+    clearTimeout(timeout);
+  }
+
+  if (!response.ok) {
+    const body = await response.text();
+    console.error('[GoogleBooks] HTTP error:', response.status, body);
+    throw new Error(`Google Books API error: ${response.status}`);
+  }
 
   const data: GoogleBooksSearchResult = await response.json();
+  console.log('[GoogleBooks] totalItems:', (data as any).totalItems, '| returned:', data.items?.length ?? 0);
   if (!data.items) return [];
   return data.items.map(volumeToBook);
 }

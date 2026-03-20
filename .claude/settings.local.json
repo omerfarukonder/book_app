@@ -3,7 +3,8 @@
     "allow": [
       "Bash(npx tsc:*)",
       "Bash(npm install:*)",
-      "Bash(node scripts/generate-icon.js)"
+      "Bash(node scripts/generate-icon.js)",
+      "Bash(ls /Users/omerfarukonder/Desktop/Projects/book_app/.env*)"
     ]
   }
 }

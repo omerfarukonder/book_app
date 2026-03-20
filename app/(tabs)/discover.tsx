@@ -34,7 +34,8 @@ export default function DiscoverScreen() {
     try {
       const books = await searchBooks(query.trim());
       setResults(books);
-    } catch {
+    } catch (err) {
+      console.error('[Discover] searchBooks failed, falling back to local:', err);
       const q = query.toLowerCase();
       setResults(
         MOCK_BOOKS.filter(
@@ -65,7 +66,9 @@ export default function DiscoverScreen() {
       <Text style={[styles.header, { color: colors.text }]}>Discover</Text>
 
       <View style={[styles.searchBar, { backgroundColor: colors.surfaceSecondary }]}>
-        <FontAwesome name="search" size={16} color={colors.textSecondary} style={styles.searchIcon} />
+        <Pressable onPress={handleSearch} style={styles.searchIconBtn}>
+          <FontAwesome name="search" size={16} color={colors.textSecondary} />
+        </Pressable>
         <TextInput
           style={[styles.searchInput, { color: colors.text }]}
           placeholder="Search books, authors, ISBN..."
@@ -110,7 +113,7 @@ export default function DiscoverScreen() {
       ) : (
         <FlatList
           data={results}
-          keyExtractor={(item) => item.google_books_id}
+          keyExtractor={(item, index) => item.google_books_id || String(index)}
           renderItem={({ item }) => <BookCard book={item} />}
           contentContainerStyle={styles.list}
           ListEmptyComponent={
@@ -142,7 +145,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 14,
     height: 44,
   },
-  searchIcon: { marginRight: 10 },
+  searchIconBtn: { marginRight: 10, padding: 4 },
   searchInput: { flex: 1, fontSize: 16, height: 44 },
   sectionTitle: { fontSize: 18, fontWeight: '600', marginBottom: 12 },
   genreGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },

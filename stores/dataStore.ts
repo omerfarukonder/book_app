@@ -4,7 +4,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Log, BookList, ListItem, Book } from '@/lib/types';
 import { MOCK_LOGS, MOCK_LISTS, MOCK_LIST_ITEMS } from '@/lib/mockData';
 
-const SEED_VERSION = 2; // bump this whenever mock data changes
+const SEED_VERSION = 3; // bump this whenever mock data changes
 import { supabase } from '@/lib/supabase';
 
 function generateId(): string {
